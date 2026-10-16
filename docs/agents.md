@@ -446,7 +446,7 @@ Field notes:
 
 ### Required host extensions
 
-Hosts can import `registerRequiredChildExtensions` from `pi-subagents/required-child-extensions` and register `{ sessionId, extensions: [{ id, path }], requireForAllRunners? }`. Paths resolve to existing files and are canonicalized into an immutable launch snapshot; bounded safe IDs appear in evidence instead of paths. One registration is allowed per parent session until its idempotent `dispose()` runs, normally on `session_shutdown`.
+Hosts can import `registerRequiredChildExtensions` from `@gang-of-beads/pi-subagents/required-child-extensions` and register `{ sessionId, extensions: [{ id, path }], requireForAllRunners? }`. Paths resolve to existing files and are canonicalized into an immutable launch snapshot; bounded safe IDs appear in evidence instead of paths. One registration is allowed per parent session until its idempotent `dispose()` runs, normally on `session_shutdown`.
 
 Required paths follow ordinary extension resolution and survive agent defaults and `extensions: []` across native foreground, detached, nested, and recovery launches. A `capabilityCeiling.denyExtensions` conflict or required load/provider-registration failure rejects before model resolution. An error a required extension reports while the child binds its extensions, such as a throwing `session_start` handler, disposes the child and rejects the launch before its first prompt. By default external runners are excluded (they run without the required extensions), and status/watch paths do not query the registry.
 

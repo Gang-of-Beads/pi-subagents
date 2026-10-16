@@ -2467,8 +2467,8 @@ export interface SubagentChildStatusEvent {
 
 /** Live controls for one in-process foreground child session. */
 export interface ForegroundChildSessionControls {
-	steer: (text: string) => Promise<void>;
-	followUp: (text: string) => Promise<void>;
+	steer: (text: string) => Promise<unknown>;
+	followUp: (text: string) => Promise<unknown>;
 	/** Abort the live child and report the run as stopped with `reason`. */
 	stop: (reason: string) => void;
 }

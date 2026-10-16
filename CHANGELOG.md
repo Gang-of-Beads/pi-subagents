@@ -2,12 +2,16 @@
 
 ## [Unreleased]
 
+## [0.77.1] - 2026-10-16
+
 ### Added
 
 - A parent agent learned about its background subagents only from completion notices or a `status` call, so a few turns after launching one it could forget it was running and launch the same work again or report that nothing was in flight. The new `activeRunsPrompt` config key, off by default, adds a short `active_subagents` system prompt section while this session has queued or running background runs. It lists each run's id, agents, mode, and chain step, and is removed when the last run finishes. Thanks to [@advaitpaliwal](https://github.com/advaitpaliwal) for the request. ([#2831](https://github.com/nicobailon/pi-subagents/issues/2831))
 
 ### Changed
 
+- Publish the compiled Gang of Beads distribution as `@gang-of-beads/pi-subagents`, without the legacy upstream-cloning installer command. The private source checkout, delegation tools and event protocols remain unchanged.
+- Develop and verify against the Pi 1.3 SDK. Custom-message runs no longer count as user prompts for the watchdog, a bash command that exits non-zero is recorded as failed, and the detached runner aliases chord only when the host Pi declares it.
 - Pressing `Esc` stopped the parent, but a background subagent that finished or asked for input a moment later started a new parent turn, so the agent the user had just stopped kept working. After `Esc`, background results and requests are now added to the session without starting a turn, and the parent sees them with the user's next prompt. A completion notice added this way tells the parent not to resume the stopped task unless the user asks. Background runs keep running, and the TUI shows how many are still active and points to `/subagents-stop`.
 - Stopping several background runs meant opening `/subagents-stop` once per run. When two or more current-session async runs are active, the picker now starts with a "stop all" row that stops all of them after one confirmation. Scheduled runs are not paused.
 

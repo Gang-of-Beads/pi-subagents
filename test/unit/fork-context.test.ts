@@ -209,12 +209,12 @@ describe("createForkContextResolver", () => {
 		}
 	});
 
-	it("fails clearly for an unflushed user-only parent", () => {
-		const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-subagents-fork-user-only-"));
+	it("fails clearly for an unflushed setup-only parent", () => {
+		const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-subagents-fork-setup-only-"));
 		try {
 			const sessionDir = path.join(tempDir, "sessions");
 			const parent = SessionManager.create(tempDir, sessionDir);
-			parent.appendMessage({ role: "user", content: "first turn prompt" });
+			parent.appendModelChange("test-provider", "test-model");
 			const parentSessionFile = parent.getSessionFile();
 			const leafId = parent.getLeafId();
 

@@ -45,7 +45,7 @@ if (/^import\s+.*["']\.\/subagent-runner\.js["'];?$/m.test(runnerBootstrap)) {
 	throw new Error("Compiled runner bootstrap must not statically import the heavy execution module");
 }
 
-const rootModules = fs.readdirSync(root).filter((name) => name.endsWith(".mjs"));
+const rootModules = fs.readdirSync(root).filter((name) => name.endsWith(".mjs") && name !== "install.mjs");
 for (const relativePath of [...rootModules, ...staticFiles]) {
 	fs.copyFileSync(path.join(root, relativePath), path.join(output, relativePath));
 }
@@ -56,10 +56,14 @@ for (const relativePath of expectedDirectories) {
 const sourcePackage = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 if (sourcePackage.private !== true) throw new Error("The source package must remain private; publish only ./dist-pkg");
 const copyFields = [
-	"name", "version", "description", "author", "license", "repository", "homepage", "bugs",
-	"bin", "dependencies", "peerDependencies", "peerDependenciesMeta", "engines", "keywords",
+	"version", "description", "author", "license", "repository", "homepage", "bugs",
+	"dependencies", "peerDependencies", "peerDependenciesMeta", "engines", "keywords",
 ];
-const publishedPackage = { type: sourcePackage.type };
+const publishedPackage = {
+	type: sourcePackage.type,
+	name: "@gang-of-beads/pi-subagents",
+	publishConfig: { access: "public" },
+};
 for (const field of copyFields) {
 	if (sourcePackage[field] !== undefined) publishedPackage[field] = sourcePackage[field];
 }

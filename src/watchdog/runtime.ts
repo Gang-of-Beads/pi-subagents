@@ -115,11 +115,15 @@ function errorMessage(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
 }
 
+/** Pi 1.2+ also starts custom-message runs through before_agent_start; per-prompt state belongs to user prompts only. */
+function isCustomMessageRun(event: unknown): boolean {
+	return !!event && typeof event === "object" && "messageType" in event && event.messageType === "custom";
+}
+
 function promptFromBeforeAgentStart(event: unknown): string | undefined {
 	if (!event || typeof event !== "object") return undefined;
-	const input = event as { prompt?: unknown; systemPrompt?: unknown };
-	if (typeof input.prompt === "string") return input.prompt;
-	if (typeof input.systemPrompt === "string") return input.systemPrompt;
+	if ("prompt" in event && typeof event.prompt === "string") return event.prompt;
+	if ("systemPrompt" in event && typeof event.systemPrompt === "string") return event.systemPrompt;
 	return undefined;
 }
 
@@ -328,7 +332,7 @@ export class MainWatchdogRuntime {
 	}
 
 	handleBeforeAgentStart(event: unknown, ctx: ContextLike): void {
-		if (this.disposed) return;
+		if (this.disposed || isCustomMessageRun(event)) return;
 		const incomingPrompt = promptFromBeforeAgentStart(event);
 		this.reset("before_agent_start");
 		this.askedThisPrompt = false;

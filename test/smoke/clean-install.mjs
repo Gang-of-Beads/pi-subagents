@@ -1,4 +1,4 @@
-// Run with Node >=22.19.0: node --experimental-strip-types test/smoke/clean-install.mjs [artifact-dir] [0.86.1|1.0.0]
+// Run with Node >=22.19.0: node --experimental-strip-types test/smoke/clean-install.mjs [artifact-dir] [0.86.1|1.0.0|1.1.0|1.3.0]
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const source = fileURLToPath(new URL("../../", import.meta.url));
 const version = process.argv[3] ?? "0.86.1";
-const supportedVersions = ["0.86.1", "1.0.0"];
+const supportedVersions = ["0.86.1", "1.0.0", "1.1.0", "1.3.0"];
 assert.ok(supportedVersions.includes(version), `requires a supported smoke version: ${supportedVersions.join(", ")}`);
 const root = process.argv[2] ? path.resolve(process.argv[2]) : fs.mkdtempSync(path.join(os.tmpdir(), "clean-install-smoke-"));
 fs.mkdirSync(root, { recursive: true });
@@ -46,9 +46,9 @@ assert.ok(packed.files.some(file => file.path === "index.js"), "compiled extensi
 assert.ok(packed.files.some(file => file.path === "src/inspectors/inspector-runner.js"), "compiled inspector runner must ship");
 assert.ok(packed.files.some(file => file.path === "src/runs/background/subagent-runner-bootstrap.js"), "compiled background bootstrap must ship");
 assert.ok(packed.files.some(file => file.path === "src/runs/background/subagent-runner.js"), "compiled background execution module must ship");
-fs.writeFileSync(path.join(extension, "package.json"), JSON.stringify({ private: true, dependencies: { "pi-subagents": `file:${path.join(root, packed.filename)}` } }));
+fs.writeFileSync(path.join(extension, "package.json"), JSON.stringify({ private: true, dependencies: { "@gang-of-beads/pi-subagents": `file:${path.join(root, packed.filename)}` } }));
 run("extension-install", "npm", ["install", "--no-audit", "--no-fund"], extension);
-const installed = path.join(extension, "node_modules/pi-subagents");
+const installed = path.join(extension, "node_modules/@gang-of-beads/pi-subagents");
 const inspectorRun = path.join(root, "inspector-run");
 fs.mkdirSync(inspectorRun);
 fs.writeFileSync(path.join(inspectorRun, "status.json"), JSON.stringify({
@@ -69,8 +69,10 @@ assert.deepEqual(resolved.missing, []);
 const tui = findHostPeerPackageDir(pi, "@earendil-works/pi-tui");
 assert.ok(tui.startsWith(host + path.sep), "TUI must come from the host install");
 assert.equal(resolved.aliases["@earendil-works/pi-tui"], resolvePackageSubpath(tui, "."));
+const hostManifest = JSON.parse(fs.readFileSync(path.join(pi, "package.json"), "utf8"));
+const declaresChord = Object.hasOwn(hostManifest.dependencies ?? {}, "@earendil-works/chord");
 for (const specifier of ["@earendil-works/chord", "@earendil-works/chord/context"]) {
-	assert.ok(resolved.aliases[specifier]);
+	assert.equal(Boolean(resolved.aliases[specifier]), declaresChord);
 }
 assert.equal(resolved.aliases["@earendil-works/pi-client/unix"], undefined);
 fs.writeFileSync(path.join(root, "aliases.json"), JSON.stringify(resolved, null, 2));

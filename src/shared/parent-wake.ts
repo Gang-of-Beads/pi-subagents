@@ -15,9 +15,9 @@ const reservations = wakeGlobal[reservationsSymbol] ?? (wakeGlobal[reservationsS
 
 export interface ParentWake {
 	/**
-	 * pi.sendMessage, except that a turn-triggering message to an idle parent is appended and the
-	 * turn is started with sendUserMessage. Pi starts a sendMessage-triggered run without
-	 * before_agent_start (earendil-works/pi#5581), so that run drops every hook-set prompt section.
+	 * Idle results are appended before one synthetic user wake, preserving shared wake reservations
+	 * and parent prompt hooks across supported hosts, including those whose custom-message runs
+	 * do not emit before_agent_start (earendil-works/pi#5581).
 	 * Returns true when the message was appended that way: Pi emits no extension message_start for it.
 	 * After userAborted() and until the next run starts, a turn-triggering message is only appended.
 	 */

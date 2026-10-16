@@ -103,8 +103,8 @@ export interface ChildSession {
 	subscribe(listener: (event: ChildSessionEvent) => void): () => void;
 	/** Resolves when the run ends, including after abort. */
 	prompt(text: string): Promise<void>;
-	steer(text: string): Promise<void>;
-	followUp(text: string): Promise<void>;
+	steer(text: string): Promise<unknown>;
+	followUp(text: string): Promise<unknown>;
 	abort(): Promise<void>;
 	/** Emits `session_shutdown` to the child's extensions and disposes the session; resolves once that shutdown work is done. */
 	dispose(): Promise<void>;

@@ -4,7 +4,7 @@ Public seams for other Pi extensions and host integrations: the in-process RPC, 
 
 ## Trusted workflow resources
 
-Loaded trusted TypeScript extensions can import `registerWorkflowResource` from `pi-subagents/workflow-resources`. This subpath does not load the main extension and exposes no resolver or permit constructor. Its exported types are `RegisterWorkflowResourceInput`, `WorkflowResourceDefinition`, and `WorkflowResourceRegistration`:
+Loaded trusted TypeScript extensions can import `registerWorkflowResource` from `@gang-of-beads/pi-subagents/workflow-resources`. This subpath does not load the main extension and exposes no resolver or permit constructor. Its exported types are `RegisterWorkflowResourceInput`, `WorkflowResourceDefinition`, and `WorkflowResourceRegistration`:
 
 ```typescript
 registerWorkflowResource({
@@ -33,7 +33,7 @@ This extension owns two fixed commands; `scripts/finite-check.mjs` must be an ex
 
 ```typescript
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { registerWorkflowResource } from "pi-subagents/workflow-resources";
+import { registerWorkflowResource } from "@gang-of-beads/pi-subagents/workflow-resources";
 
 export default function (pi: ExtensionAPI) {
   let registration: { dispose(): void } | undefined;
@@ -202,7 +202,7 @@ const registration = request.result.registration;
 // Call registration.dispose() during your extension cleanup.
 ```
 
-If `pi-subagents` is a resolvable dependency of the consumer package, `pi-subagents/agents` exports `RUNTIME_AGENT_REGISTER_EVENT`, the request/result types, and `registerAgentViaEvents()` for the same contract. A separately installed Pi package is not automatically a Node dependency of another package. In that case, use the event contract directly instead of a runtime import. A type-only development dependency is optional.
+If `@gang-of-beads/pi-subagents` is a resolvable dependency of the consumer package, `@gang-of-beads/pi-subagents/agents` exports `RUNTIME_AGENT_REGISTER_EVENT`, the request/result types, and `registerAgentViaEvents()` for the same contract. A separately installed Pi package is not automatically a Node dependency of another package. In that case, use the event contract directly instead of a runtime import. A type-only development dependency is optional.
 
 A registered agent follows the operator's subagent model settings like any other agent: `subagents.defaultModel`, `defaultProvider`, and `defaultThinking` fill a definition that omits `model` or `thinking`, and the `model`, `defaultProvider`, `fast`, and `thinking` fields of `agentOverrides.<name>` win over the definition. Every other definition field stays extension-owned, and other override fields are ignored for runtime agents. Set `model` in the definition only when the agent must not follow operator model settings; `model: "inherit"` selects the parent session model explicitly.
 
@@ -212,14 +212,14 @@ This contract is process-local. It does not register agents in child sessions or
 
 ## External jobs in FleetView
 
-Use `pi-subagents/external-runs` to publish display-only current-session jobs owned by another extension:
+Use `@gang-of-beads/pi-subagents/external-runs` to publish display-only current-session jobs owned by another extension:
 
 ```ts
 import {
   registerExternalRun,
   updateExternalRun,
   unregisterExternalRun,
-} from "pi-subagents/external-runs";
+} from "@gang-of-beads/pi-subagents/external-runs";
 
 registerExternalRun({
   id: "dependency-review",
@@ -248,10 +248,10 @@ External jobs are observational. The caller owns execution, persistence, cancell
 
 ## Launch contract preflight
 
-Use `pi-subagents/preflight` when an extension needs to inspect the resolved child launch contract before deciding whether to run anything:
+Use `@gang-of-beads/pi-subagents/preflight` when an extension needs to inspect the resolved child launch contract before deciding whether to run anything:
 
 ```ts
-import { resolveSubagentLaunchContract } from "pi-subagents/preflight";
+import { resolveSubagentLaunchContract } from "@gang-of-beads/pi-subagents/preflight";
 
 const result = await resolveSubagentLaunchContract({
   agent: "reviewer",
@@ -287,7 +287,7 @@ Preflight covers ordinary single-agent launch resolution:
 Bridge inputs:
 
 - `intercomBridge` replaces the global `intercomBridge` config for this launch, with the same semantics as the `subagent` tool and delegation overrides. Pass the same value to the launch you compare against. Preflight reads the global config from disk on each call while the running extension keeps the config it loaded at startup, so pass the override when the digest must not depend on that file.
-- The default bridge instruction never names the parent session, so most hosts need no further input. When the configured `instructionFile` interpolates `{orchestratorTarget}`, preflight reports a `host_required` diagnostic unless the host supplies a non-empty `orchestratorTarget`; the executor derives that target with `resolveIntercomSessionTarget` from `pi-subagents/intercom-bridge`, given the parent session name and id.
+- The default bridge instruction never names the parent session, so most hosts need no further input. When the configured `instructionFile` interpolates `{orchestratorTarget}`, preflight reports a `host_required` diagnostic unless the host supplies a non-empty `orchestratorTarget`; the executor derives that target with `resolveIntercomSessionTarget` from `@gang-of-beads/pi-subagents/intercom-bridge`, given the parent session name and id.
 
 Boundaries:
 
@@ -307,7 +307,7 @@ import {
   SUBAGENT_DELEGATION_RESPONSE_EVENT,
   type SubagentDelegationRequest,
   type SubagentDelegationResponse,
-} from "pi-subagents/delegation";
+} from "@gang-of-beads/pi-subagents/delegation";
 
 const request: SubagentDelegationRequest = {
   requestId: crypto.randomUUID(),
@@ -366,14 +366,14 @@ Constraints:
 - The caller selects a configured agent, but agent discovery and effective tools remain package-owned. A request cannot grant arbitrary tools, and tool restrictions are not an operating-system sandbox.
 - The detached RPC remains async-only; this API is foreground-only.
 
-Unversioned prompt-template payloads with `requestId`, `agent`, `task`, `context`, `model`, and `cwd` are rejected as legacy direct delegation. New integrations must use the structured owned-leaf request above. `pi-subagents/delegation` is the canonical contract for extension integrations.
+Unversioned prompt-template payloads with `requestId`, `agent`, `task`, `context`, `model`, and `cwd` are rejected as legacy direct delegation. New integrations must use the structured owned-leaf request above. `@gang-of-beads/pi-subagents/delegation` is the canonical contract for extension integrations.
 
 ## Capability ceilings
 
 Parent extensions can enforce an out-of-band, session-scoped capability ceiling without adding a model-visible field to `subagent`:
 
 ```ts
-import { registerSubagentCapabilityCeiling } from "pi-subagents/capability-ceiling";
+import { registerSubagentCapabilityCeiling } from "@gang-of-beads/pi-subagents/capability-ceiling";
 
 const restriction = registerSubagentCapabilityCeiling({
   sessionId: ctx.sessionManager.getSessionId(),
@@ -407,7 +407,7 @@ Schedules created while a ceiling is active are rejected until durable schedule 
 Other Pi extensions can make their current-session jobs visible to `bg_wait` through the process-local provider contract:
 
 ```ts
-import { registerBackgroundWorkProvider } from "pi-subagents/background-work";
+import { registerBackgroundWorkProvider } from "@gang-of-beads/pi-subagents/background-work";
 
 const dispose = registerBackgroundWorkProvider({
   name: "my-background-extension",
@@ -437,7 +437,7 @@ Local foreground children never load the parent's ambient extensions: they share
 Extensions that own long-running advisor jobs can register a process-local provider for `runner.type: external-job` agents:
 
 ```ts
-import { registerExternalJobProvider } from "pi-subagents/external-job-provider";
+import { registerExternalJobProvider } from "@gang-of-beads/pi-subagents/external-job-provider";
 
 const dispose = registerExternalJobProvider({
   name: "surf-oracle",
@@ -477,7 +477,7 @@ adds no runner, tool, or configuration option.
 
 ```ts
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import type { InspectorRegistration, InspectorRegistrationRequest } from "pi-subagents/inspectors";
+import type { InspectorRegistration, InspectorRegistrationRequest } from "@gang-of-beads/pi-subagents/inspectors";
 import { myInspector } from "./my-inspector.ts"; // Your InspectorPlugin implementation.
 
 export default function (pi: ExtensionAPI) {
@@ -494,7 +494,7 @@ export default function (pi: ExtensionAPI) {
 }
 ```
 
-`pi-subagents/inspectors` exports the event name as `INSPECTOR_REGISTER_EVENT`,
+`@gang-of-beads/pi-subagents/inspectors` exports the event name as `INSPECTOR_REGISTER_EVENT`,
 the request and registration types, and the existing `InspectorPlugin`,
 `InspectorContext`, `InspectorLaunch`, `InspectorParams`, and `InspectorTarget`
 types. When pi-subagents is a resolvable dependency, `registerInspector(pi, plugin)`
@@ -578,7 +578,7 @@ import {
   getProjectPaneStatus,
   focusProjectPane,
   closeProjectPane,
-} from "pi-subagents/project-panes";
+} from "@gang-of-beads/pi-subagents/project-panes";
 
 const opened = await openProjectPane({ cwd: "/path/to/repo", focus: false });
 const status = await getProjectPaneStatus({ cwd: "/path/to/repo" });
