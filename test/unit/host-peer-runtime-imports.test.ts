@@ -286,10 +286,10 @@ test("chord is required only when the host declares it, and aliased host-first w
 		assert.equal(result.aliases[`${chord}/context`], fs.realpathSync(path.join(hostChord, "context.mjs")));
 		fs.unlinkSync(path.join(hostChord, "context.mjs"));
 		assert.deepEqual(resolveHostPeerAliases(host).missing, [`${chord}/context`]);
-		writePackage(host, "@earendil-works/pi-coding-agent", "0.84.3", hostExports);
+		writePackage(host, "@earendil-works/pi-coding-agent", "1.3.0", hostExports);
 		fs.rmSync(path.join(host, "node_modules", "@earendil-works/pi-tui"), { recursive: true });
 		result = resolveHostPeerAliases(host);
-		assert.deepEqual(result.missing, ["@earendil-works/pi-tui"], "pre-chord hosts still require TUI");
+		assert.deepEqual(result.missing, ["@earendil-works/pi-tui"], "hosts without chord still require TUI");
 	} finally {
 		fs.rmSync(root, { recursive: true, force: true });
 	}

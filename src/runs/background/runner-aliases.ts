@@ -42,8 +42,8 @@ const SCHEMA_PACKAGE = "@earendil-works/pi-schema";
 interface PackageManifest {
 	name?: unknown;
 	version?: unknown;
-	main?: unknown;
 	dependencies?: unknown;
+	main?: unknown;
 	optionalDependencies?: unknown;
 	exports?: unknown;
 }

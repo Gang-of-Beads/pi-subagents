@@ -31,7 +31,8 @@ test("executeAsyncSingle preloads all peer aliases before the selected runner lo
 			if (pkg === "@earendil-works/pi-ai" && subpath === "./compat") expectedAliases[pkg] = path.join(dir, target);
 			return [subpath, target];
 		}));
-		fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: pkg, version: "0.85.1", exports }));
+		const dependencies = pkg === "@earendil-works/pi-coding-agent" ? { "@earendil-works/chord": "*" } : undefined;
+		fs.writeFileSync(path.join(dir, "package.json"), JSON.stringify({ name: pkg, version: "0.85.1", exports, dependencies }));
 	}
 	const originalArgv1 = process.argv[1];
 	try {

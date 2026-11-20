@@ -2,11 +2,20 @@
 
 ## [Unreleased]
 
+## [0.77.1] - 2026-10-16
+
+### Added
+
 ### Fixed
 
 - A background subagent that finishes after the Pi process that started it has exited, for example because Pi was restarted, no longer waits forever for proof that its process exited. Only the Pi that started a subagent sees its process close, so when that Pi was gone the proof stayed pending and the workflow that launched the subagent never reported its processes as settled. Once the subagent's process is confirmed gone, its proof now reads as unknown with the reason `observer-unavailable`. Thanks to [@tdslot](https://github.com/tdslot) for the report (#3304).
 
 ## [0.89.1] - 2026-11-18
+
+- Publish the compiled Gang of Beads distribution as `@gang-of-beads/pi-subagents`, without the legacy upstream-cloning installer command. The private source checkout, delegation tools and event protocols remain unchanged.
+- Develop and verify against the Pi 1.3 SDK. Custom-message runs no longer count as user prompts for the watchdog, a bash command that exits non-zero is recorded as failed, and the detached runner aliases chord only when the host Pi declares it.
+- Pressing `Esc` stopped the parent, but a background subagent that finished or asked for input a moment later started a new parent turn, so the agent the user had just stopped kept working. After `Esc`, background results and requests are now added to the session without starting a turn, and the parent sees them with the user's next prompt. A completion notice added this way tells the parent not to resume the stopped task unless the user asks. Background runs keep running, and the TUI shows how many are still active and points to `/subagents-stop`.
+- Stopping several background runs meant opening `/subagents-stop` once per run. When two or more current-session async runs are active, the picker now starts with a "stop all" row that stops all of them after one confirmation. Scheduled runs are not paused.
 
 ### Highlights
 
