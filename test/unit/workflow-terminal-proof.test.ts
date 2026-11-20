@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { describe, it } from "node:test";
 import type { AsyncStatus, ProcessTerminal, WorkflowChildSummary } from "../../src/shared/types.ts";
 import { readWorkflowTerminalProof } from "../../src/runs/background/workflow-terminal-proof.ts";
+import { currentPidNamespaceScope } from "../../src/runs/background/pid-namespace.ts";
 
 type Steps = NonNullable<AsyncStatus["steps"]>;
 
@@ -67,6 +69,17 @@ describe("readWorkflowTerminalProof", () => {
 		});
 	}));
 
+	it("reports unknown instead of pending when a finished child's runner died with nobody watching it", () => withFixture(({ asyncDir, writeChild }) => {
+		const exited = spawnSync(process.execPath, ["-e", ""]);
+		assert.equal(exited.status, 0);
+		const pending: ProcessTerminal = { ...runnerIdentity, state: "pending" };
+		writeChild({ state: "complete", pid: exited.pid, pidNamespaceScope: currentPidNamespaceScope(), processTerminal: pending }, pending);
+		assert.deepEqual(readWorkflowTerminalProof(asyncDir, asyncChild, summary(), 0, 2_000), {
+			version: 1, kind: "workflow", runId: "workflow-run", state: "unknown", dispatchClosed: true,
+			reason: "async workflow child main process-terminal proof is unknown (observer-unavailable)",
+		});
+	}));
+
 	it("does not accept a missing child roster as an empty workflow", () => withFixture(({ asyncDir }) => {
 		assert.deepEqual(readWorkflowTerminalProof(asyncDir, undefined, summary(), 0, 2_000), {
 			version: 1, kind: "workflow", runId: "workflow-run", state: "unknown", dispatchClosed: true,
@@ -89,6 +102,32 @@ describe("readWorkflowTerminalProof", () => {
 		assert.deepEqual(readWorkflowTerminalProof(asyncDir, asyncChild, summary({ workflowState: "failed" }), 0, 2_000), {
 			version: 1, kind: "workflow", runId: "workflow-run", state: "observed", dispatchClosed: true, observedAt: 2_000, children: [notStarted],
 		});
+	}));
+
+	it("needs no process evidence for an async child whose launch failed before a runner existed", () => withFixture(({ root, asyncDir, writeChild }) => {
+		const launchError = "Unknown subagent model 'x/y' in the active Pi model registry.";
+		type StepOutcome = Pick<Steps[number], "status" | "error">;
+		const steps = (step: StepOutcome): Steps => [{ agent: "worker", workflowKey: "main", runId: "child-run", async: true, ...step }];
+		const failedLaunch = steps({ status: "failed", error: launchError });
+		const workflow = summary({ workflowState: "failed", children: [{ childId: "main", runId: "child-run", state: "failed" }] });
+		const observed = { version: 1, kind: "workflow", runId: "workflow-run", state: "observed", dispatchClosed: true, observedAt: 2_000, children: [] };
+		assert.deepEqual(readWorkflowTerminalProof(asyncDir, failedLaunch, workflow, 0, 2_000), observed);
+		const childDir = path.join(root, "child-run");
+		fs.mkdirSync(childDir);
+		fs.writeFileSync(path.join(childDir, "mission.json"), "{}");
+		fs.writeFileSync(path.join(childDir, "run-fanout-budget.json"), "{}");
+		assert.deepEqual(readWorkflowTerminalProof(asyncDir, failedLaunch, workflow, 0, 2_000), observed);
+		for (const artifact of ["process-terminal.json", "runner-startup.json"]) {
+			fs.writeFileSync(path.join(childDir, artifact), "{}");
+			assert.equal(readWorkflowTerminalProof(asyncDir, failedLaunch, workflow, 0, 2_000).state, "unknown", artifact);
+			fs.rmSync(path.join(childDir, artifact));
+		}
+		const retainedOutcomes: StepOutcome[] = [{ status: "failed" }, { status: "stopped", error: "Stopped." }, { status: "running" }];
+		for (const step of retainedOutcomes) {
+			assert.equal(readWorkflowTerminalProof(asyncDir, steps(step), workflow, 0, 2_000).state, "unknown", JSON.stringify(step));
+		}
+		writeChild({ state: "running", processTerminal: { ...runnerIdentity, state: "pending" } });
+		assert.equal(readWorkflowTerminalProof(asyncDir, failedLaunch, workflow, 0, 2_000).state, "pending");
 	}));
 
 	it("needs no process evidence for synchronous children that run inside the host", () => withFixture(({ asyncDir }) => {

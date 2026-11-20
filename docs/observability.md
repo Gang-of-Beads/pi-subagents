@@ -16,6 +16,8 @@ Long-open `bash` attention notices identify the exact tool call and include stat
 
 Live progress shows compact detail for single, chain, and parallel modes: a bounded one-line task, current tool, recent output, token counts, aggregate cost, duration, activity freshness, current-tool duration, and chain graph metadata when available. Workflow `label` metadata wins over raw task text in compact multi-child cards.
 
+While a child runs, the first line of its latest successful `contact_supervisor` `progress_update` shows as a `progress:` row under its task, with the time since the report.
+
 Press Pi's configured expand key (`Ctrl+O` by default) to expand the full streaming view with complete output per step.
 
 Sequential chains show a flow line like `done scout → running worker`. Chains with parallel steps show per-step cards instead. Chain status uses `label` and `phase` metadata when present, while falling back to agent names for older chains.
@@ -116,8 +118,8 @@ FleetView and the under-editor async widget are both enabled by default; set `as
 Default keys:
 
 - `↑`/`↓` or `j`/`k` — select a child
-- `Shift+K`/`Shift+J` — scroll one line
-- `PgUp`/`PgDn` — scroll one page
+- `K`/`J` (Shift+k / Shift+j) — scroll output one line
+- `PgUp`/`PgDn` — scroll output one body viewport page (structured headers stay pinned)
 - `x`/`Ctrl+O` — toggle tool details
 - `r` — refresh
 - `Esc` — close
@@ -125,6 +127,10 @@ Default keys:
 - `s` — compose an acknowledged message to a selected live async child; Tab cycles `steer`, `follow_up`, and `auto`
 - `D` — stop a selected child's top-level async run after confirmation
 - `H` — open the selected active async child through the available Inspect plugin
+
+In fullscreen mode with Pi mouse reporting enabled, primary-click a visible roster row to select that child. Wheel or trackpad input over the output pane (including its pinned header) scrolls the same viewport as the keyboard. Owned wheel events stay inside the inspector, even at the top and bottom. New output follows the bottom until you scroll away; reaching the bottom resumes following. Steering/redo drafts and stop confirmation retain input ownership, and Prompt Audit blocks roster clicks. Footer shortcuts remain text hints, not buttons.
+
+In regular (non-fullscreen) mode, the terminal retains mouse scrolling and scrollback ownership; internal-pane wheel scrolling and roster clicking are not promised. Use the keyboard controls above to navigate clipped inspector output in either mode. The extension does not enable terminal mouse tracking.
 
 Set `fleetKeybindings` in the extension config to replace inspector-level keys when a terminal intercepts keys such as `PgUp`, `PgDn`, `Home`, or `End`. Prompt modes keep fixed keys such as `Esc`, `Enter`, `Tab`, and stop-confirmation `Y`/`N`.
 
@@ -155,9 +161,11 @@ If something feels misconfigured, run `/subagents-doctor` or ask: "Check whether
 ## Host inspection protocol (RPC)
 
 RPC hosts receive live async status through the bounded `subagent-async` widget
-(`PI_SUBAGENT_ASYNC_JSON:` payload). For on-demand detail — a child's delegated
-task, transcript window, or final output — hosts can invoke the extension
-command:
+(`PI_SUBAGENT_ASYNC_JSON:` payload). Step nodes report the `agent` the child
+runs as, and the `model` and `thinking` level it runs on once its status reports
+them. For on-demand
+detail — a child's delegated task, transcript window, or final output — hosts
+can invoke the extension command:
 
 ```text
 /subagents-inspect-rpc <requestId> <asyncId> [childId] [--lines N]
@@ -183,6 +191,10 @@ Inspection properties:
 - `task` is the child session's first user message and is only populated when
   it is genuinely attributable (fresh-context child whose session file fits the
   read window); forked children omit it.
+- `resolvedModel` (`{ provider, model }`) is the pair Pi recorded on the
+  inspected child's latest own assistant reply, never the requested model. It is
+  absent before the first reply, for run-level inspection of a multi-step or
+  workflow run, and for runs recorded before pi-subagents reported it.
 - `childId` is exactly the node id the host received in the status snapshot
   (step `workflowKey`/`runId`/`step:<index>`, or a nested run id).
 
@@ -235,6 +247,8 @@ child stop API.
 
 The status/result fields are: `lifecycleArtifactVersion`, `runId`/`id`, `sessionId`, `mode`, `state`, `startedAt`, `lastUpdate`, `endedAt`, `durationMs`, `cwd`, `asyncDir`, `sessionFile`, `outputFile`, `workflowGraph`, `steps`, `results`, `totalTokens`, `totalCost`, `model`/`requestedModel`, `toolCount`, `turnCount`, optional `launchResolvedExtensions`, optional `runtimeAcknowledgedExtensions`, and nested `children` when a child is allowed to launch subagents.
 
+A workflow child's own status adds `parentWorkflowRunId` and `workflowKey`. Use that pair to bind the child to its workflow. The child's `toolCallId` is a launch id the workflow host generates for that child, not the id of the parent tool call that started the workflow. While an async child runs, its session path is in `steps[0].sessionFile`; the top-level `sessionFile` is written when it completes.
+
 `requestedModel` records the launch's requested model (the explicit `--model` override, else the agent's configured model) before registry normalization.
 
 `launchResolvedExtensions` is parent-resolved launch intent only: it reports opaque extension identifiers and whether ambient extensions were disabled, without exposing raw extension paths or claiming the child runtime acknowledged that those extensions loaded.
@@ -256,6 +270,8 @@ The reported `runtimeAcknowledgedExtensions` projection is `{ version: 1, source
 Lifecycle artifacts include `process-terminal-candidate.json` (private runner evidence) and `process-terminal.json` (the public proof projection).
 
 A proof is `observed` only after the live parent observes the exact detached runner's `close` event and any tracked canonical-session lease is free. Children run inside the runner process, so the candidate records no separate writer processes. If the observer is unavailable, the proof is `unknown`; do not infer process exit from `endedAt`, result-file existence, PID disappearance, or lease-directory absence.
+
+When a finished run's runner PID is confirmed dead and `process-terminal.json` is still `pending`, for example because the Pi that launched it has exited, a status read writes `process-terminal-unobserved.json` with an `unknown` proof (reason `observer-unavailable`). It never touches `process-terminal.json`; status readers report it only while `process-terminal.json` is still `pending` for the same runner, so a close that is observed later still wins.
 
 The `subagent:process-terminal` event and RPC `ping.capabilities.processTerminalProof` expose this status. Process proof is point-in-time evidence and remains separate from execution success or stopped/non-resumable state.
 
@@ -322,6 +338,7 @@ Async events:
 
 - `subagent:async-started`
 - `subagent:async-complete`
+- `subagent:jobs-changed` (see [extension-api.md](extension-api.md#refresh-a-host-view-without-polling))
 
 For regular async starts, the `subagent:async-started` payload includes redacted `task` and `goal` prompt fields. Async workflow script roots emit the same event with `mode: "workflow"` after their initial `status.json` is durable; workflow roots can omit `task`, and any included prompt fields are redacted. Their keyed children are then announced dynamically through `subagent:child-status`. Companion UI extensions can combine those hints with the authoritative live lifecycle artifacts under `asyncDir` without scraping terminal output.
 

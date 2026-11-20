@@ -40,6 +40,10 @@ export function readChildCommandState(channelDir: string): ChildCommandState | u
 	try { return JSON.parse(fs.readFileSync(childCommandStatePath(channelDir), "utf8")) as ChildCommandState; }
 	catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return undefined; throw error; }
 }
+/** True when the child's native command controller manages `toolCallId`, so command controls can target that call. */
+export function retainsChildCommand(channelDir: string, toolCallId: string): boolean {
+	return readChildCommandState(channelDir)?.commands.some((command) => command.toolCallId === toolCallId) === true;
+}
 function active(job: CommandJob): boolean { return job.snapshot.endedAt === undefined; }
 function text(result: AgentToolResult<unknown>): string {
 	return Buffer.from(result.content.filter((part) => part.type === "text").map((part) => part.text).join("\n")).subarray(-MAX_OUTPUT_BYTES).toString("utf8");
@@ -136,13 +140,20 @@ export function createChildCommandRuntime(channelDir: string) {
 					persist();
 					startInbox();
 					let timer: ReturnType<typeof setTimeout> | undefined;
-					if (typeof yieldTimeMs === "number") timer = setTimeout(() => operate("yield", toolCallId), yieldTimeMs);
+					let yieldSaveError: unknown;
+					// A throw from this timer would exit Pi. A closed controller is already cancelling the command; a failed
+					// save still yields, and the handle says the saved state is stale.
+					if (typeof yieldTimeMs === "number") timer = setTimeout(() => {
+						if (closed) return;
+						try { operate("yield", toolCallId); } catch (error) { yieldSaveError = error; }
+					}, yieldTimeMs);
 					const execution = Promise.resolve().then(() => tool.execute(toolCallId, args, commandSignal, (update) => {
 						job.snapshot.output = text(update);
 						if (job.snapshot.state === "running") onUpdate?.(update);
 					}, ctx)).then((result) => {
 						job.snapshot.output = text(result);
-						job.snapshot.state = result.isError === true ? "failed" : "completed";
+						// Pi 1.2 reports a non-zero exit as an isError result instead of throwing.
+						job.snapshot.state = result.isError ? "failed" : "completed";
 						const fullOutputPath = (result.details as { fullOutputPath?: string } | undefined)?.fullOutputPath;
 						if (fullOutputPath) job.snapshot.fullOutputPath = fullOutputPath;
 						return result;
@@ -158,7 +169,8 @@ export function createChildCommandRuntime(channelDir: string) {
 					job.settled = execution.then(() => {}, () => {});
 					const result = await Promise.race([execution.then((value) => ({ value })), yielded.then(() => undefined)]);
 					if (result) return result.value;
-					return { content: [{ type: "text", text: `Command is still running (toolCallId: ${toolCallId}). This is not a successful exit. Use subagent_command({ action: "status", toolCallId: ${JSON.stringify(toolCallId)} }) to inspect or wait, or action: "cancel" to stop it.\n${job.snapshot.output}` }], details: { command: { ...job.snapshot } } };
+					const saveWarning = yieldSaveError === undefined ? "" : `\nThe command's saved state is out of date because it could not be saved: ${yieldSaveError instanceof Error ? yieldSaveError.message : String(yieldSaveError)}`;
+					return { content: [{ type: "text", text: `Command is still running (toolCallId: ${toolCallId}). This is not a successful exit. Use subagent_command({ action: "status", toolCallId: ${JSON.stringify(toolCallId)} }) to inspect or wait, or action: "cancel" to stop it.${saveWarning}\n${job.snapshot.output}` }], details: { command: { ...job.snapshot } } };
 				},
 			};
 		},
