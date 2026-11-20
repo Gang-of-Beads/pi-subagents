@@ -9,7 +9,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const source = fileURLToPath(new URL("../../", import.meta.url));
 const version = process.argv[3] ?? "1.5.2";
-const supportedVersions = ["0.86.1", "1.0.0", "1.1.0", "1.3.0", "1.5.2"];
+const supportedVersions = ["0.86.1", "1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.5.2"];
 assert.ok(supportedVersions.includes(version), `requires a supported smoke version: ${supportedVersions.join(", ")}`);
 const root = process.argv[2] ? path.resolve(process.argv[2]) : fs.mkdtempSync(path.join(os.tmpdir(), "clean-install-smoke-"));
 fs.mkdirSync(root, { recursive: true });
