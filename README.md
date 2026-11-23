@@ -104,6 +104,12 @@ Details, keybindings, and the machine-readable run artifacts are in [Observabili
 
 For bounded orchestration, `maxSubagentSpawnsPerRun` limits cumulative logical children in one run tree. It defaults to 64 and stays separate from active concurrency and the session-wide cumulative spawn budget. See [Configuration](https://github.com/nicobailon/pi-subagents/blob/main/docs/configuration.md#maxsubagentspawnsperrun).
 
+## PI WEB
+
+The package also carries the PI WEB half: a **Subagents** tab listing the runs the session started, with their transcripts, steering and stop, and a supervisor card for child requests. It used to be the separate `@gang-of-beads/pi-web-subagents` package; installing that one as well now loads the same extension twice, so keep only this one.
+
+Nothing has to be enabled: PI WEB reads `piWeb.plugins` from this package. The browser module is bundled with Lit (BSD 3-Clause, see `web/THIRD_PARTY_NOTICES.md`).
+
 ## If something feels off
 
 ```text

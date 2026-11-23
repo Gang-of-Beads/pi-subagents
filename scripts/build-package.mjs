@@ -40,6 +40,11 @@ const tsc = path.join(root, "node_modules", "typescript", "bin", "tsc");
 if (!fs.existsSync(tsc)) throw new Error("Missing TypeScript compiler; run npm install first");
 execFileSync(process.execPath, [tsc, "-p", path.join(root, "tsconfig.build.json")], { cwd: root, stdio: "inherit" });
 
+// The PI WEB half is a browser bundle plus its server bundle: built here, so a
+// package is never packed with a stale or missing plugin.
+
+execFileSync(process.execPath, [path.join(root, "scripts", "build-web.mjs")], { cwd: root, stdio: "inherit" });
+
 const runnerBootstrap = fs.readFileSync(path.join(output, "src/runs/background/subagent-runner-bootstrap.js"), "utf8");
 if (!runnerBootstrap.includes('import("./subagent-runner.js")')) {
 	throw new Error("Compiled runner bootstrap must dynamically import the heavy execution module");
@@ -116,6 +121,9 @@ publishedPackage.exports = Object.fromEntries(bundleEntries.map(({ name, target,
 	if (!fs.existsSync(path.join(output, "bundle", `${out}.js`))) throw new Error(`Missing bundled package export: ./bundle/${out}.js`);
 	return [name, { types: `${base}.d.ts`, default: `./bundle/${out}.js` }];
 }));
+publishedPackage.piWeb = sourcePackage.piWeb;
+fs.cpSync(path.join(root, "web", "dist"), path.join(output, "web"), { recursive: true });
+fs.copyFileSync(path.join(root, "web", "THIRD_PARTY_NOTICES.md"), path.join(output, "web", "THIRD_PARTY_NOTICES.md"));
 publishedPackage.pi = {
 	...sourcePackage.pi,
 	extensions: ["./bundle/index.js"],

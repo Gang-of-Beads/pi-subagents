@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- The PI WEB half ships in this package: a Subagents tab, run transcripts, steering and stop, and the supervisor card, declared through `piWeb.plugins` and built by `npm run build:web`. It used to be `@gang-of-beads/pi-web-subagents`, which is now deprecated: installing both loads the extension twice.
+
 ### Changed
 
 - Gang of Beads distribution: ships upstream 0.89.1. The fork keeps only its packaging (the scoped name is applied at pack time, `install.mjs` stays out of the packed root modules), and its smoke and Pi matrix also cover the 1.5.2 host.
