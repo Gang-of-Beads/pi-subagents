@@ -73,13 +73,6 @@ function savedForegroundRuns<T>(): T[] {
 	return names.map((name) => JSON.parse(fs.readFileSync(path.join(dir, name), "utf-8")) as T);
 }
 
-/** Every saved foreground run: one file each under results/foreground-history. */
-function savedForegroundRuns<T>(): T[] {
-	const dir = path.join(DIRS.results, "foreground-history");
-	const names = fs.existsSync(dir) ? fs.readdirSync(dir).filter((name) => name.endsWith(".json")) : [];
-	return names.map((name) => JSON.parse(fs.readFileSync(path.join(dir, name), "utf-8")) as T);
-}
-
 describe("single sync execution", { skip: !available ? "pi packages not available" : undefined }, () => {
 	installSingleExecutionHooks();
 
