@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.91.1] - 2026-11-23
+
+### Fixed
+
+- The packed manifest keeps the fork's scoped name. The upstream merge replaced the line that carried it, so the pack claimed `pi-subagents` and publishing was refused.
+
 ## [0.91.0] - 2026-11-23
 
 ### Added
