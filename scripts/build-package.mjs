@@ -42,7 +42,6 @@ execFileSync(process.execPath, [tsc, "-p", path.join(root, "tsconfig.build.json"
 
 // The PI WEB half is a browser bundle plus its server bundle: built here, so a
 // package is never packed with a stale or missing plugin.
-
 execFileSync(process.execPath, [path.join(root, "scripts", "build-web.mjs")], { cwd: root, stdio: "inherit" });
 
 const runnerBootstrap = fs.readFileSync(path.join(output, "src/runs/background/subagent-runner-bootstrap.js"), "utf8");
@@ -53,7 +52,7 @@ if (/^import\s+.*["']\.\/subagent-runner\.js["'];?$/m.test(runnerBootstrap)) {
 	throw new Error("Compiled runner bootstrap must not statically import the heavy execution module");
 }
 
-const rootModules = fs.readdirSync(root).filter((name) => (name.endsWith(".mjs") || name === "workflow-script-worker.cjs" || name === "workflow-script-process.cjs") && name !== "install.mjs");
+const rootModules = fs.readdirSync(root).filter((name) => name.endsWith(".mjs") || name === "workflow-script-worker.cjs" || name === "workflow-script-process.cjs");
 for (const relativePath of [...rootModules, ...staticFiles]) {
 	fs.copyFileSync(path.join(root, relativePath), path.join(output, relativePath));
 }
@@ -64,14 +63,10 @@ for (const relativePath of expectedDirectories) {
 const sourcePackage = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 if (sourcePackage.private !== true) throw new Error("The source package must remain private; publish only ./dist-pkg");
 const copyFields = [
-	"version", "description", "author", "license", "repository", "homepage", "bugs",
-	"dependencies", "peerDependencies", "peerDependenciesMeta", "engines", "keywords",
+	"name", "version", "description", "author", "license", "repository", "homepage", "bugs",
+	"bin", "dependencies", "peerDependencies", "peerDependenciesMeta", "engines", "keywords",
 ];
-const publishedPackage = {
-	type: sourcePackage.type,
-	name: "@gang-of-beads/pi-subagents",
-	publishConfig: { access: "public" },
-};
+const publishedPackage = { type: sourcePackage.type };
 for (const field of copyFields) {
 	if (sourcePackage[field] !== undefined) publishedPackage[field] = sourcePackage[field];
 }

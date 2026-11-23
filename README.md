@@ -15,7 +15,6 @@ pi install npm:@gang-of-beads/pi-subagents
 ```
 
 This is the Gang of Beads distribution. Use one installation source for this fork; remove an existing Git or upstream npm installation before switching to avoid loading two copies.
-
 That is the only required step. pi-subagents needs Pi 1.2.0 or newer. Background children use the host's SDK: npm Pi keeps its detached Node runner; the official Pi 1.2.0 Linux x64 standalone release loads the same runner through Pi's embedded SDK, without a separate SDK install. See [Standalone background execution](docs/standalone-background.md) for the supported boundary and validation gate.
 
 ## Try this first
