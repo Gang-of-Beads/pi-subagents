@@ -70,6 +70,8 @@ const publishedPackage = { type: sourcePackage.type };
 for (const field of copyFields) {
 	if (sourcePackage[field] !== undefined) publishedPackage[field] = sourcePackage[field];
 }
+// The fork publishes under the scoped name; front of the copy list, so it survives the loop.
+publishedPackage.name = "@gang-of-beads/pi-subagents";
 // The extension entry and every subpath export load from one bundled module graph (#2980).
 // Loading ~240 separate modules costs seconds on Windows; shared chunks keep one copy of module state.
 // The compiled files stay in the package for child processes, and each bundled module keeps the
