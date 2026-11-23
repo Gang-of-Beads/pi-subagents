@@ -55,6 +55,9 @@ jobs:
       - name: Typecheck
         if: matrix.typecheck
         run: npm run typecheck
+      - name: Web plugin typecheck and tests
+        if: matrix.typecheck
+        run: npm run check:web
       - name: Native tool activation schema budgets
         if: matrix.typecheck
         run: npm run test:smoke:tool-activation

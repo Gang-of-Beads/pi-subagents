@@ -24,6 +24,8 @@ jobs:
           registry-url: https://registry.npmjs.org
       - name: Install devDependencies
         run: npm ci --ignore-scripts
+      - name: Check the PI WEB half
+        run: npm run check:web
       - name: Run tests
         run: npm run test:all
       - name: Build published package
