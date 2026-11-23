@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.90.0] - 2026-11-23
+
 ### Added
 
 - The PI WEB half ships in this package: a Subagents tab, run transcripts, steering and stop, and the supervisor card, declared through `piWeb.plugins` and built by `npm run build:web`. It used to be `@gang-of-beads/pi-web-subagents`, which is now deprecated: installing both loads the extension twice.
