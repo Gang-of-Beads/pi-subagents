@@ -31,4 +31,13 @@ jobs:
       - name: Build published package
         run: npm run build:pkg
       - name: Publish to npm
-        run: npm publish ./dist-pkg --provenance
+        run: |
+          set -euo pipefail
+          pkg="$(node -p "require('./dist-pkg/package.json').name")"
+          ver="$(node -p "require('./dist-pkg/package.json').version")"
+          # A version can already be there from a manual publish, or from a re-run of this workflow.
+          if npm view "$pkg@$ver" version >/dev/null 2>&1; then
+            echo "$pkg@$ver is already on npm; skipping publish"
+          else
+            npm publish "./dist-pkg" --provenance
+          fi

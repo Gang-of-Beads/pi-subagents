@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.91.2] - 2026-11-24
+
+### Fixed
+
+- The release workflow skips a version that is already on npm instead of failing, so a re-run or a manual publish first no longer blocks the release job.
+
 ## [0.91.1] - 2026-11-23
 
 ### Fixed
